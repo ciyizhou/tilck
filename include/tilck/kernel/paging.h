@@ -6,7 +6,7 @@
 #include <tilck/common/page_size.h>
 #include <tilck/kernel/hal_types.h>
 
-#if defined(__i386__) || defined(__riscv)
+#if defined(__i386__) || defined(__riscv) || defined(__aarch64__)
    #define PAGE_DIR_SIZE (PAGE_SIZE)
 #endif
 
@@ -43,6 +43,12 @@
    #define PA_TO_LIN_VA(pa) ((void *) ((ulong)(pa) + linear_va_pa_offset))
    #define LIN_VA_TO_PA(va) ((ulong)(va) - linear_va_pa_offset)
 
+#elif defined(__aarch64__)
+
+   extern ulong linear_va_pa_offset;
+   #define PA_TO_LIN_VA(pa) ((void *) ((ulong)(pa) + linear_va_pa_offset))
+   #define LIN_VA_TO_PA(va) ((ulong)(va) - linear_va_pa_offset)
+
 #endif
 /*
  * These MACROs convert addresses to/from the kernel base virtual mapping to
@@ -60,6 +66,12 @@
    #define KERNEL_VA_TO_PA(va) ((ulong)(va) - KERNEL_BASE_VA)
 
 #elif defined(__riscv)
+
+   extern ulong kernel_va_pa_offset;
+   #define PA_TO_KERNEL_VA(pa) ((void *) ((ulong)(pa) + kernel_va_pa_offset))
+   #define KERNEL_VA_TO_PA(va) ((ulong)(va) - kernel_va_pa_offset)
+
+#elif defined(__aarch64__)
 
    extern ulong kernel_va_pa_offset;
    #define PA_TO_KERNEL_VA(pa) ((void *) ((ulong)(pa) + kernel_va_pa_offset))

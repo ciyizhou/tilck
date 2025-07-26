@@ -17,6 +17,9 @@ extern "C" {
    #include <tilck/common/arch/generic_x86/x86_utils.h>
 #elif defined(__riscv)
    #include <tilck/common/arch/riscv/riscv_utils.h>
+#elif defined(__aarch64__)
+   #include <tilck/common/arch/aarch64/aarch64_utils.h>
+   #undef RDTSC
 #else
    /* TODO: actually implement an equivalent of RDTSC for AARCH64 */
    static inline ulong RDTSC(void) { return 0; }

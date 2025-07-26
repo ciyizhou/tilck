@@ -1,0 +1,183 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
+
+#include <tilck_gen_headers/config_mm.h>
+#include <tilck_gen_headers/config_debug.h>
+
+#include <tilck/common/basic_defs.h>
+#include <tilck/common/utils.h>
+#include <tilck/common/unaligned.h>
+
+#include <tilck/kernel/sched.h>
+#include <tilck/kernel/process.h>
+#include <tilck/kernel/process_mm.h>
+#include <tilck/kernel/process_int.h>
+#include <tilck/kernel/kmalloc.h>
+#include <tilck/kernel/worker_thread.h>
+#include <tilck/kernel/debug_utils.h>
+#include <tilck/kernel/hal.h>
+#include <tilck/kernel/signal.h>
+#include <tilck/kernel/errno.h>
+#include <tilck/kernel/syscalls.h>
+#include <tilck/kernel/paging_hw.h>
+#include <tilck/kernel/irq.h>
+#include <tilck/kernel/user.h>
+#include <tilck/kernel/vdso.h>
+#include <tilck/kernel/switch.h>
+
+#include <tilck/mods/tracing.h>
+#include <tilck/kernel/arch/aarch64/arch_utils.h>
+
+void asm_trap_entry_resume(void);
+
+STATIC_ASSERT(
+   OFFSET_OF(struct task, fault_resume_regs) == TI_F_RESUME_RS_OFF
+);
+STATIC_ASSERT(
+   OFFSET_OF(struct task, faults_resume_mask) == TI_FAULTS_MASK_OFF
+);
+
+STATIC_ASSERT(sizeof(struct task_and_process) <= 2048);
+
+int setup_sig_handler(struct task *ti,
+                      enum sig_state sig_state,
+                      regs_t *r,
+                      ulong user_func,
+                      int signum)
+{
+   if (ti->nested_sig_handlers == 0) {
+
+      int rc;
+
+      if (sig_state == sig_pre_syscall)
+         set_return_register(r, -EINTR);
+
+      if ((rc = save_regs_on_user_stack(r)) < 0)
+         return rc;
+   }
+
+   regs_set_ip(r, user_func);
+   regs_set_usersp(r,
+                   regs_get_usersp(r) -
+                   SIG_HANDLER_ALIGN_ADJUST -
+                   sizeof(ulong));
+   set_return_register(r, signum);
+   set_return_addr(r, post_sig_handler_user_vaddr);
+   ti->nested_sig_handlers++;
+
+   ASSERT((regs_get_usersp(r) & (USERMODE_STACK_ALIGN - 1)) == 0);
+   return 0;
+}
+
+void
+kthread_create_init_regs_arch(regs_t *r, void *func)
+{
+   *r = (regs_t) {
+      .elr_el1 = (ulong)func,
+      .spsr_el1 = SPSR_EL3_DAIF | SPSR_EL3_M_EL1H, // Disable interrupts, EL1h mode
+      .kernel_resume_pc = (ulong)&asm_trap_entry_resume,
+   };
+}
+
+void
+kthread_create_setup_initial_stack(struct task *ti, regs_t *r, void *arg)
+{
+   set_return_register(r, (ulong)arg);
+   set_return_addr(r, (ulong)&kthread_exit);
+   regs_set_sp(r, (ulong)ti->state_regs);
+   ti->state_regs = (void *)ti->state_regs - sizeof(regs_t);
+   memcpy(ti->state_regs, r, sizeof(*r));
+}
+
+void
+setup_usermode_task_regs(regs_t *r, void *entry, void *stack_addr)
+{
+   *r = (regs_t) {
+      .elr_el1 = (ulong)entry,
+      .sp_el0 = (ulong)stack_addr,
+      .spsr_el1 = SPSR_EL3_DAIF | SPSR_EL3_M_EL0T, // Disable interrupts, EL0t user mode
+      .kernel_resume_pc = (ulong)&asm_trap_entry_resume,
+   };
+}
+
+static inline bool
+is_fpu_enabled_for_task(struct task *ti)
+{
+   // AArch64: FPU is usually always available, or can be implemented as needed
+   return true;
+}
+
+void
+save_curr_fpu_ctx_if_enabled(void)
+{
+   // AArch64: Optional implementation, usually no need to save FPU context manually
+}
+
+void set_kernel_stack(ulong stack_ptr)
+{
+   // AArch64: Usually not needed
+}
+
+void
+arch_usermode_task_switch(struct task *ti)
+{
+   regs_t *state = ti->state_regs;
+   ASSERT(!is_kernel_thread(ti));
+
+   if (get_curr_pdir() != ti->pi->pdir) {
+      set_curr_pdir(ti->pi->pdir);
+   }
+
+   if (!running_in_kernel(ti)) {
+      process_signals(ti, sig_in_usermode, state);
+   }
+
+   if (is_fpu_enabled_for_task(ti)) {
+      // AArch64: Optional implementation, usually no need to restore FPU context manually
+   }
+}
+
+void
+arch_specific_new_proc_setup(struct process *pi, struct process *parent)
+{
+   if (!parent)
+      return;      /* we're done */
+
+   pi->set_child_tid = NULL;
+}
+
+void
+arch_specific_free_proc(struct process *pi)
+{
+   /* do nothing */
+   return;
+}
+
+static void
+handle_fatal_error(regs_t *r, int signum)
+{
+   send_signal(get_curr_tid(), signum, SIG_FL_PROCESS | SIG_FL_FAULT);
+}
+
+void handle_generic_fault_int(regs_t *r, const char *fault_name)
+{
+   if (!get_curr_task() || is_kernel_thread(get_curr_task()))
+      panic("FAULT. Error: %s\n", fault_name);
+
+   handle_fatal_error(r, SIGSEGV);
+}
+
+void handle_inst_illegal_fault_int(regs_t *r, const char *fault_name)
+{
+   if (!get_curr_task() || is_kernel_thread(get_curr_task()))
+      panic("FAULT. Error: %s\n", fault_name);
+
+   handle_fatal_error(r, SIGILL);
+}
+
+void handle_bus_fault_int(regs_t *r, const char *fault_name)
+{
+   if (!get_curr_task() || is_kernel_thread(get_curr_task()))
+      panic("FAULT. Error: %s\n", fault_name);
+
+   handle_fatal_error(r, SIGBUS);
+}

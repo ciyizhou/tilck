@@ -38,6 +38,14 @@ riscv64_ARCH_GCC_TC="riscv64"
 riscv64_ARCH_GCC_FLAGS=""
 riscv64_ARCH_GCC_TC_CODENAME="riscv64-lp64d"
 
+aarch64_ARCH_SHORT="aarch64"
+aarch64_ARCH_FAMILY="aarch64"
+aarch64_ARCH_ELF_NAME="elf64-littleaarch64"
+aarch64_ARCH_LD_OUTPUT="elf64aarch64"
+aarch64_ARCH_GCC_TC="aarch64"
+aarch64_ARCH_GCC_FLAGS="-march=armv8-a"
+aarch64_ARCH_GCC_TC_CODENAME="aarch64"
+
 
 function set_arch_gcc_tc_arch {
 

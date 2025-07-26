@@ -25,6 +25,9 @@
 #elif defined(__riscv)
    #include <tilck/common/arch/riscv/riscv_utils.h>
    #undef RDTSC
+#elif defined(__aarch64__)
+   #include <tilck/common/arch/aarch64/aarch64_utils.h>
+   #undef RDTSC
 #endif
 
 #ifdef USERMODE_APP

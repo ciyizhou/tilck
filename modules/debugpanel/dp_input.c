@@ -1,11 +1,13 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 
 #include <tilck/common/basic_defs.h>
+#include <tilck/common/string_util.h>
 #include <tilck/kernel/tty.h>
 #include <tilck/kernel/errno.h>
 #include <tilck/kernel/fs/vfs.h>
 #include <tilck/kernel/sched.h>
 #include <tilck/kernel/timer.h>
+
 
 #include "termutil.h"
 #include "dp_int.h"

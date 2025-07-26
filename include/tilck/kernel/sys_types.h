@@ -232,6 +232,31 @@ struct k_stat64 {
    u32 __unused5;
 };
 
+#elif defined(__aarch64__)
+
+/*
+ * Modern struct stat for aarch64 systems.
+ */
+struct k_stat64 {
+   ulong st_dev;
+   ulong st_ino;
+   u32 st_mode;
+   u32 st_nlink;
+   u32 st_uid;
+   u32 st_gid;
+   ulong st_rdev;
+   ulong __pad1;
+   long st_size;
+   int st_blksize;
+   int __pad2;
+   long st_blocks;
+   struct k_timespec64 st_atim;
+   struct k_timespec64 st_mtim;
+   struct k_timespec64 st_ctim;
+   u32 __unused4;
+   u32 __unused5;
+};
+
 #endif
 
 

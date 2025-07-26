@@ -1,0 +1,25 @@
+# This is the sample uEnv.txt file for qemu-virt U-boot
+
+# The FIT file to boot from
+fitfile=image.fit
+
+# kerneladdr must match what's in FIT
+# Note: loading kernel is divided into two steps
+# 1. The bootm loados command loads the kernel into kerneladdr(0x80a00000 which
+#       is defined in fit-image.its)
+# 2. The bootelf -p command loads the kernel into 0x80200000(the
+#      load address defined by the elf header)
+kerneladdr=@KERNEL_LOAD@
+
+
+# load fit image from fatpart
+loadfit=setexpr fatpart ${distro_bootpart} + 1;fatload ${devtype} ${devnum}:${fatpart} ${loadaddr} ${prefix}${fitfile}
+
+# load kernel and initrd into ram
+loadkernel=bootm start ${loadaddr}#config-1; bootm loados ${loadaddr}#config-1; bootm ramdisk ${loadaddr}#config-1; bootelf -p ${kerneladdr};
+
+# just for debug
+message=echo Booting kernel with ramdisk ${initrd_start}-${initrd_end}
+
+# the real boot command be executed
+boot2=run loadfit; run loadkernel; run message; bootm go ${loadaddr};

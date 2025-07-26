@@ -32,7 +32,7 @@ source $MAIN_DIR/scripts/bash_includes/arch_checks
 source $MAIN_DIR/scripts/bash_includes/compiler_checks
 
 
-ALL_ARCH_LIST=(i386 x86_64 riscv64)
+ALL_ARCH_LIST=(i386 x86_64 riscv64 aarch64)
 DEFAULT_ARCH="i386"
 export MUSL_VER=${MUSL_VER:-1.2.5}
 export ARCH=${ARCH:-$DEFAULT_ARCH}
@@ -319,7 +319,7 @@ function main {
       default_funcs+=(build_busybox)
    fi
 
-   if [[ "$ARCH" == "riscv64" ]]; then
+   if [[ "$ARCH" == "riscv64" || "$ARCH" == "aarch64" ]]; then
 
       export BOARD=${BOARD:-qemu-virt}
       export BOARD_BSP="$MAIN_DIR/other/bsp/$ARCH/$BOARD"
@@ -383,6 +383,7 @@ function main {
    mkdir -p $TC/i386
    mkdir -p $TC/x86_64
    mkdir -p $TC/riscv64
+   mkdir -p $TC/aarch64
    mkdir -p $TC/host_aarch64
    mkdir -p $TC/host_i386
    mkdir -p $TC/host_x86_64

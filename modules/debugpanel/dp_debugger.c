@@ -3,6 +3,7 @@
 #include <tilck/common/basic_defs.h>
 #include <tilck/common/printk.h>
 #include <tilck/common/syscalls.h>
+#include <tilck/common/string_util.h>
 
 #include <tilck/kernel/tty.h>
 #include <tilck/kernel/errno.h>

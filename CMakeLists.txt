@@ -64,12 +64,13 @@ define_env_cache_bool_var(TEST_GCOV)
 define_env_cache_bool_var(KERNEL_GCOV)
 
 # Board defaults and stick variable
-if (${ARCH} STREQUAL "riscv64")
+if (${ARCH} STREQUAL "riscv64" OR ${ARCH} STREQUAL "aarch64")
    set(ARCH_DEFAULT_BOARD     "qemu-virt")
 else()
    set(ARCH_DEFAULT_BOARD     "")
 endif()
 define_env_cache_str_var(BOARD "${ARCH_DEFAULT_BOARD}")
+message (STATUS "wangu:BOARD: ${BOARD}")
 
 # USE_SYSCC-related variables
 define_env_cache_bool_var(USE_SYSCC)
@@ -248,7 +249,7 @@ endif()
 set(KERNEL_SYMBOLS ON CACHE BOOL
     "Keep symbol tables loaded in the kernel for backtraces and self tests")
 
-if (${ARCH} STREQUAL "riscv64")
+if (${ARCH} STREQUAL "riscv64" OR ${ARCH} STREQUAL "aarch64")
    set(BOOTLOADER_U_BOOT ON CACHE BOOL
        "Build the U-BOOT bootloader")
 else()
@@ -410,8 +411,20 @@ if (${ARCH} STREQUAL "riscv64")
    list(
       APPEND disabled_modules_list
 
-      # The riscv compiler does not support the acpi module
+      # The riscv and aarch64 compiler does not support the acpi module
       acpi
+)
+endif()
+
+if (${ARCH} STREQUAL "aarch64")
+
+	list (
+		APPEND disabled_modules_list
+
+		# The aarch64 compiler does not support the the fb and ramfb module
+		acpi
+		fb
+		ramfb
 )
 
 endif()
@@ -622,6 +635,26 @@ elseif (${ARCH} STREQUAL "riscv64")
       set(KERNEL_BASE_VA     0xFFFFFFFF80000000)  # -2 GB
       set(KERNEL_VADDR       0xFFFFFFFF80200000)  # -2 GB + 2MB
    endif()
+elseif (${ARCH} STREQUAL "aarch64")
+   set(ARCH_SHORT       "aarch64")
+   set(ARCH_FAMILY      "aarch64")
+   set(ARCH_ELF_NAME    "elf64-littleaarch64")
+   set(ARCH_LD_OUTPUT   "elf64aarch64")
+   set(ARCH_BFD         "aarch64")
+   set(ARCH_GCC_TC      "aarch64")
+   set(ARCH_GCC_FLAGS   "-march=armv8-a")
+   set(ARCH_GCC_FLAGS   "${ARCH_GCC_FLAGS} -D__aarch64__")
+   set(ARCH_BITS        64)
+   set(BASE_VA                     0x2000000000)  # +128 GB
+   if (KRN32_LIN_VADDR)
+      set(LINEAR_MAPPING_MB                4096)  # Might be updated.
+      set(KERNEL_BASE_VA             ${BASE_VA})
+      set(KERNEL_VADDR             0x2000200000)  # BASE_VA + 2MB
+   else()
+      set(LINEAR_MAPPING_MB                4096)  # Might be updated.
+      set(KERNEL_BASE_VA     0xFFFFFFFF80000000)
+      set(KERNEL_VADDR       0xFFFFFFFF80100000)  # -2 GB + 1 MB
+   endif()
 
 else()
 
@@ -817,6 +850,20 @@ elseif (${ARCH} STREQUAL "riscv64")
    else()
       set(QEMU_ARCH_OPTS   "${QEMU_ARCH_OPTS} -nographic")
    endif()
+
+elseif (${ARCH} STREQUAL "aarch64")
+   set(QEMU_ARCH_OPTS      "-device virtio-blk-device,drive=img1")
+   set(QEMU_ARCH_OPTS      "${QEMU_ARCH_OPTS} -cpu cortex-a53 -M virt")
+   set(QEMU_ARCH_OPTS      "${QEMU_ARCH_OPTS} -kernel ${U_BOOT_BIN}")
+	set(QEMU_RAM_OPT        "-m size=2G" )  # use qemu's default: 128 MB
+
+   if (${MOD_fb} AND ${MOD_ramfb})
+      set(QEMU_ARCH_OPTS   "${QEMU_ARCH_OPTS} -vga none -device ramfb")
+      set(QEMU_ARCH_OPTS   "${QEMU_ARCH_OPTS} -serial stdio")
+   else()
+      set(QEMU_ARCH_OPTS   "${QEMU_ARCH_OPTS} -nographic")
+   endif()
+
 endif()
 
 # Set kernel's stack size in number of pages.

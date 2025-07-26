@@ -51,6 +51,24 @@
       /* STUB function: do nothing */
    }
 
+#elif defined(__aarch64__) && !defined(KERNEL_TEST)
+
+   #include <tilck/common/arch/aarch64/asm_consts.h>
+   #include <tilck/common/arch/aarch64/aarch64_utils.h>
+   #include <tilck/common/arch/aarch64/image.h>
+   #include <tilck/common/arch/aarch64/cpu_features.h>
+   #include <tilck/kernel/arch/aarch64/arch_ints.h>
+   #include <tilck/kernel/arch/aarch64/mmio.h>
+   #include <tilck/kernel/arch/aarch64/ioremap.h>
+   #include <tilck/kernel/arch/aarch64/asm_defs.h>
+   #include <tilck/kernel/arch/aarch64/arch_utils.h>
+   #include <tilck/kernel/arch/aarch64/fpu_memcpy.h>
+
+   static ALWAYS_INLINE void init_segmentation(void)
+   {
+      /* STUB function: do nothing */
+   }
+
 #elif defined(__aarch64__) && defined(KERNEL_TEST)
 
    /*

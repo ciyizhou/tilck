@@ -86,18 +86,9 @@ EXTERN inline int isprint(int c) {
 
    #include <tilck/common/arch/riscv/asm_riscv_strings.h>
 
-#elif (defined(__aarch64__) && defined(KERNEL_TEST))
+#elif defined(__aarch64__)
 
-   /*
-    * The Tilck kernel has no support for AARCH64 per se, but its noarch
-    * code can be compiled as part of the unit tests on an AARCH64 host.
-    */
-
-   #include <string.h>
-   void *memset16(u16 *s, u16 val, size_t n);
-   void *memset32(u32 *s, u32 val, size_t n);
-   void *memcpy16(void *dest, const void *src, size_t n);
-   void *memcpy32(void *dest, const void *src, size_t n);
+   #include <tilck/common/arch/aarch64/asm_aarch64_strings.h>
 
 #endif
 

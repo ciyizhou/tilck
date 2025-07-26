@@ -4,6 +4,7 @@
 
 #include <tilck/common/basic_defs.h>
 #include <tilck/common/printk.h>
+#include <tilck/common/string_util.h>
 
 #include <tilck/kernel/datetime.h>
 #include <tilck/kernel/sched.h>

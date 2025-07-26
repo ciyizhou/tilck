@@ -217,7 +217,7 @@ inline void str_reverse(char *str, size_t len)
    }
 }
 
-#if (defined(__aarch64__) && defined(KERNEL_TEST)) || defined(__riscv)
+#if defined(__aarch64__) || defined(__riscv)
 
 void *memset16(u16 *s, u16 val, size_t n)
 {

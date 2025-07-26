@@ -36,6 +36,8 @@ void save_current_task_state(regs_t *r,  bool irq)
       r->rflags |= EFLAGS_IF;
 #elif defined(__riscv)
       r->sstatus |= SR_SPIE;
+#elif defined(__aarch64__)
+      r->spsr_el1 |= SPSR_EL3_I; /* Enable IRQ interrupts */
 #elif defined(KERNEL_TEST)
       /* do nothing, that's OK */
 #else
@@ -94,10 +96,12 @@ void restore_regs_from_user_stack(regs_t *r)
    NOT_IMPLEMENTED();
 #elif defined(__riscv)
    r->sstatus |= SR_SPIE;
+#elif defined(__aarch64__)
+    NOT_IMPLEMENTED(); /* Enable IRQ interrupts */
 #elif defined(KERNEL_TEST)
       /* do nothing, that's OK */
 #else
-      #error Not implemented
+   #error Not implemented
 #endif
 }
 
@@ -160,6 +164,8 @@ switch_to_task_safety_checks(struct task *curr, struct task *next)
 #elif defined(__riscv)
    cond = !(next->state_regs->sstatus & SR_SIE) &&
           !(next->state_regs->sstatus & SR_SPIE);
+#elif defined(__aarch64__)
+    NOT_IMPLEMENTED();
 #else
    cond = false;
 #endif
@@ -218,6 +224,8 @@ set_current_task_in_user_mode(void)
 #if defined(__i386__)
    set_kernel_stack((u32)curr->state_regs);
 #elif defined(__x86_64__)
+   NOT_IMPLEMENTED();
+#elif defined(__aarch64__)
    NOT_IMPLEMENTED();
 #endif
 }
